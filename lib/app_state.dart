@@ -396,6 +396,21 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateNoteForEntry(int timestamp, String note) {
+    final entry = history.where((e) => e.timestamp == timestamp).firstOrNull;
+    if (entry == null) return;
+    entry.note = note;
+    _saveHistory();
+    notifyListeners();
+  }
+
+  String lastNoteForActivity(String name) {
+    final entries = history.where((e) => e.name == name && e.note.isNotEmpty).toList();
+    if (entries.isEmpty) return '';
+    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return entries.first.note;
+  }
+
   void deleteHistoryEntry(HistoryEntry entry) {
     history.remove(entry);
     _statsCache = null;

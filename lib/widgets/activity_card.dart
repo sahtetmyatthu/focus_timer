@@ -214,11 +214,34 @@ class _ActivityCardState extends State<ActivityCard> {
 
         if (state.isPomodoroMode)
           Text(
-            (s.pomodoroCount > 0) 
+            (s.pomodoroCount > 0)
                 ? '•  🍅 ${s.pomodoroCount} session${s.pomodoroCount > 1 ? 's' : ''}'
                 : '•  🍅 ${state.pomodoroDurationMinutes}m sessions',
             style: TextStyle(fontSize: 12, color: AppTheme.muted, fontWeight: FontWeight.w500),
           ),
+
+        // Last session note
+        Builder(builder: (_) {
+          final note = state.lastNoteForActivity(widget.activity.name);
+          if (note.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Row(
+              children: [
+                Icon(Icons.notes_rounded, size: 10, color: AppTheme.muted.withAlpha(160)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    note,
+                    style: TextStyle(fontSize: 10, color: AppTheme.muted.withAlpha(160), fontStyle: FontStyle.italic),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
       ],
     );
   }

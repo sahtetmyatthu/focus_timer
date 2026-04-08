@@ -39,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _confetti.play();
         _showSnack('🎉 Target reached! Great work!', color: AppTheme.success);
       };
-      state.onSessionLogged = null;
+      state.onSessionLogged = (entry) {
+        _showSessionNoteSheet(entry);
+      };
       state.onPomodoroBreak = (name, count) {
         HapticFeedback.heavyImpact();
         _playAlarm(looping: true);
@@ -95,6 +97,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context: context,
       barrierDismissible: false,
       builder: (_) => _PomodoroBreakDialog(activityName: activityName, count: count),
+    );
+  }
+
+  void _showSessionNoteSheet(HistoryEntry entry) {
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SessionNoteSheet(
+        entry: entry,
+        onSave: (note) => context.read<AppState>().updateNoteForEntry(entry.timestamp, note),
+      ),
     );
   }
 
@@ -949,3 +964,145 @@ class _PomodoroBreakDialog extends StatelessWidget {
   }
 }
 
+// ─── Session Note Sheet ───────────────────────────────────────────────────────
+
+class _SessionNoteSheet extends StatefulWidget {
+  final HistoryEntry entry;
+  final void Function(String note) onSave;
+  const _SessionNoteSheet({required this.entry, required this.onSave});
+
+  @override
+  State<_SessionNoteSheet> createState() => _SessionNoteSheetState();
+}
+
+class _SessionNoteSheetState extends State<_SessionNoteSheet> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.entry.note);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: const Border(top: BorderSide(color: AppTheme.border)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(30),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Text(widget.entry.icon, style: const TextStyle(fontSize: 22, inherit: false)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.entry.name,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                      ),
+                      Text(
+                        AppState.formatTime(widget.entry.duration),
+                        style: TextStyle(fontSize: 12, color: AppTheme.muted),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'SESSION NOTE',
+              style: TextStyle(fontSize: 11, color: AppTheme.muted, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _ctrl,
+              autofocus: true,
+              maxLines: 3,
+              maxLength: 200,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'e.g. "Stopped at page 47, chapter 3"',
+                hintStyle: TextStyle(color: AppTheme.muted.withAlpha(120), fontSize: 13),
+                filled: true,
+                fillColor: Colors.white.withAlpha(8),
+                counterStyle: TextStyle(color: AppTheme.muted, fontSize: 11),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: AppTheme.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppTheme.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: AppTheme.accent),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Skip', style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final note = _ctrl.text.trim();
+                      if (note.isNotEmpty) widget.onSave(note);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text('Save Note',
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
